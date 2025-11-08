@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Cardiology Care System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+
+        .panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .data-stream {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .alert-critical {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #c0392b;
+        }
+
+        .alert-warning {
+            background: #ffeaa7;
+            color: #2d3436;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #fdcb6e;
+        }
+
+        .alert-normal {
+            background: #55efc4;
+            color: #2d3436;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #00b894;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-running {
+            background: #2ecc71;
+        }
+
+        .status-stopped {
+            background: #e74c3c;
+        }
+
+        .status-initializing {
+            background: #f39c12;
+        }
+
+        .risk-meter {
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .risk-level {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .risk-low { background: #2ecc71; }
+        .risk-medium { background: #f39c12; }
+        .risk-high { background: #e74c3c; }
+
+        .recommendation-item {
+            background: #e8f4fc;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .patient-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* Electro-Mechanical System Styles */
+        .device-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .device-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .device-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .device-details {
+            flex-grow: 1;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .device-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .device-btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .device-btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .device-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .device-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .device-value {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .mechanical-system {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .system-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .system-component {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            min-width: 120px;
+        }
+
+        .component-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .component-status {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .connection-line {
+            flex-grow: 1;
+            height: 3px;
+            background: #3498db;
+            margin: 0 10px;
+        }
+
+        .ecg-animation-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            margin: 20px 0;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .ecg-line {
+            position: absolute;
+            height: 2px;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>❤️ Adaptive Personalized Cardiology Care</h1>
+            <p>Real-time cardiac monitoring and predictive analytics system</p>
+            <div style="margin-top: 15px;">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">System Status: INITIALIZING</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="startSystem()">🚀 Start System</button>
+            <button class="btn btn-success" onclick="simulatePatientData()">📊 Simulate Patient Data</button>
+            <button class="btn btn-warning" onclick="simulateCriticalCase()">⚠️ Simulate Critical Case</button>
+            <button class="btn btn-danger" onclick="resetSystem()">🔄 Reset System</button>
+        </div>
+
+        <!-- Electro-Mechanical System Section -->
+        <div class="mechanical-system">
+            <h3>⚙️ Electro-Mechanical System Control</h3>
+            <div class="system-diagram">
+                <div class="system-component">
+                    <div class="component-icon">💓</div>
+                    <div>ECG Monitor</div>
+                    <div class="component-status" id="ecgStatus">Initializing</div>
+                    <div class="ecg-animation-container" id="ecgContainer">
+                        <canvas id="heartCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="connection-line"></div>
+                <div class="system-component">
+                    <div class="component-icon">💊</div>
+                    <div>Drug Infusion</div>
+                    <div class="component-status" id="infusionStatus">Initializing</div>
+                </div>
+                <div class="connection-line"></div>
+                <div class="system-component">
+                    <div class="component-icon">🫁</div>
+                    <div>Ventilator</div>
+                    <div class="component-status" id="ventilatorStatus">Initializing</div>
+                </div>
+                <div class="connection-line"></div>
+                <div class="system-component">
+                    <div class="component-icon">🔋</div>
+                    <div>Power System</div>
+                    <div class="component-status" id="powerStatus">Initializing</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="device-controls">
+            <div class="device-panel">
+                <div class="device-status">
+                    <div class="device-icon">💓</div>
+                    <div class="device-details">
+                        <h4>ECG Monitor</h4>
+                        <div id="ecgDeviceStatus">Initializing...</div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="device-btn device-btn-primary" id="ecgStartBtn" onclick="startECG()">Start</button>
+                        <button class="device-btn device-btn-danger" id="ecgStopBtn" onclick="stopECG()" disabled>Stop</button>
+                    </div>
+                </div>
+                <div>
+                    <label>Signal Gain:</label>
+                    <input type="range" min="1" max="10" value="5" class="device-slider" id="ecgGainSlider" onchange="updateECGGain(this.value)">
+                    <div class="device-value" id="ecgGainValue">5x</div>
+                </div>
+            </div>
+
+            <div class="device-panel">
+                <div class="device-status">
+                    <div class="device-icon">💊</div>
+                    <div class="device-details">
+                        <h4>Drug Infusion Pump</h4>
+                        <div id="infusionDeviceStatus">Initializing...</div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="device-btn device-btn-primary" id="infusionStartBtn" onclick="startInfusion()">Start</button>
+                        <button class="device-btn device-btn-danger" id="infusionStopBtn" onclick="stopInfusion()" disabled>Stop</button>
+                    </div>
+                </div>
+                <div>
+                    <label>Infusion Rate (ml/hr):</label>
+                    <input type="range" min="0" max="100" value="0" class="device-slider" id="infusionRateSlider" onchange="updateInfusionRate(this.value)">
+                    <div class="device-value" id="infusionRateValue">0 ml/hr</div>
+                </div>
+            </div>
+
+            <div class="device-panel">
+                <div class="device-status">
+                    <div class="device-icon">🫁</div>
+                    <div class="device-details">
+                        <h4>Ventilator</h4>
+                        <div id="ventilatorDeviceStatus">Initializing...</div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="device-btn device-btn-primary" id="ventilatorStartBtn" onclick="startVentilator()">Start</button>
+                        <button class="device-btn device-btn-danger" id="ventilatorStopBtn" onclick="stopVentilator()" disabled>Stop</button>
+                    </div>
+                </div>
+                <div>
+                    <label>Respiratory Rate (breaths/min):</label>
+                    <input type="range" min="6" max="30" value="12" class="device-slider" id="ventilatorRateSlider" onchange="updateVentilatorRate(this.value)">
+                    <div class="device-value" id="ventilatorRateValue">12 breaths/min</div>
+                </div>
+            </div>
+
+            <div class="device-panel">
+                <div class="device-status">
+                    <div class="device-icon">🔋</div>
+                    <div class="device-details">
+                        <h4>Power System</h4>
+                        <div id="powerDeviceStatus">Initializing...</div>
+                    </div>
+                </div>
+                <div>
+                    <label>Battery Level:</label>
+                    <div class="risk-meter">
+                        <div class="risk-level risk-low" id="batteryLevel" style="width: 100%"></div>
+                    </div>
+                    <div class="device-value" id="batteryValue">100%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="panel">
+                <h3>📈 Patient Vital Signs</h3>
+                <div class="patient-info">
+                    <div class="info-item">
+                        <div class="info-value" id="heartRate">--</div>
+                        <div class="info-label">Heart Rate (bpm)</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value" id="bloodPressure">--/--</div>
+                        <div class="info-label">Blood Pressure</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value" id="oxygenSat">--%</div>
+                        <div class="info-label">Oxygen Saturation</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value" id="respiratoryRate">--</div>
+                        <div class="info-label">Respiratory Rate</div>
+                    </div>
+                </div>
+                <div id="vitalSigns" class="data-stream" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="panel">
+                <h3>🔍 Clinical Insights</h3>
+                <div id="clinicalInsights" class="data-stream"></div>
+            </div>
+
+            <div class="panel">
+                <h3>📊 Risk Assessment</h3>
+                <div id="riskAssessment" class="data-stream"></div>
+            </div>
+
+            <div class="panel">
+                <h3>💡 Treatment Recommendations</h3>
+                <div id="treatmentRecommendations" class="data-stream"></div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>📊 Real-time ECG Monitoring</h3>
+            <canvas id="ecgChart" height="100"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>📈 Risk Trends Over Time</h3>
+            <canvas id="riskChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // System State
+        let systemState = {
+            status: 'INITIALIZING',
+            patientModels: new Map(),
+            dataHistory: [],
+            isRunning: false,
+            simulationInterval: null,
+            chart: null,
+            riskChart: null,
+            // Electro-mechanical system state
+            devices: {
+                ecg: {
+                    status: 'INITIALIZING',
+                    running: false,
+                    gain: 5
+                },
+                infusion: {
+                    status: 'INITIALIZING',
+                    running: false,
+                    rate: 0
+                },
+                ventilator: {
+                    status: 'INITIALIZING',
+                    running: false,
+                    rate: 12
+                },
+                power: {
+                    status: 'INITIALIZING',
+                    battery: 100
+                }
+            }
+        };
+
+        // Initialize Charts
+        function initializeCharts() {
+            const ecgCtx = document.getElementById('ecgChart').getContext('2d');
+            const riskCtx = document.getElementById('riskChart').getContext('2d');
+
+            // Destroy existing charts if they exist
+            if (systemState.chart) {
+                systemState.chart.destroy();
+            }
+            if (systemState.riskChart) {
+                systemState.riskChart.destroy();
+            }
+
+            // ECG Chart
+            systemState.chart = new Chart(ecgCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'ECG Signal',
+                        data: [],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 0
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Amplitude'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Risk Chart
+            systemState.riskChart = new Chart(riskCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Arrhythmia Risk',
+                            data: [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Heart Failure Risk',
+                            data: [],
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'Risk Level'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update System Status
+        function updateSystemStatus(status, message) {
+            systemState.status = status;
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = 'status-indicator';
+            switch(status) {
+                case 'RUNNING':
+                    indicator.classList.add('status-running');
+                    break;
+                case 'STOPPED':
+                    indicator.classList.add('status-stopped');
+                    break;
+                case 'INITIALIZING':
+                    indicator.classList.add('status-initializing');
+                    break;
+            }
+            
+            statusText.textContent = `System Status: ${status} - ${message}`;
+        }
+
+        // Electro-Mechanical System Functions
+        function updateDeviceStatus() {
+            // Update ECG device
+            document.getElementById('ecgDeviceStatus').textContent = systemState.devices.ecg.status;
+            document.getElementById('ecgStatus').textContent = systemState.devices.ecg.status;
+            document.getElementById('ecgStartBtn').disabled = systemState.devices.ecg.running;
+            document.getElementById('ecgStopBtn').disabled = !systemState.devices.ecg.running;
+            
+            // Update infusion device
+            document.getElementById('infusionDeviceStatus').textContent = systemState.devices.infusion.status;
+            document.getElementById('infusionStatus').textContent = systemState.devices.infusion.status;
+            document.getElementById('infusionStartBtn').disabled = systemState.devices.infusion.running;
+            document.getElementById('infusionStopBtn').disabled = !systemState.devices.infusion.running;
+            
+            // Update ventilator device
+            document.getElementById('ventilatorDeviceStatus').textContent = systemState.devices.ventilator.status;
+            document.getElementById('ventilatorStatus').textContent = systemState.devices.ventilator.status;
+            document.getElementById('ventilatorStartBtn').disabled = systemState.devices.ventilator.running;
+            document.getElementById('ventilatorStopBtn').disabled = !systemState.devices.ventilator.running;
+            
+            // Update power system
+            document.getElementById('powerDeviceStatus').textContent = systemState.devices.power.status;
+            document.getElementById('powerStatus').textContent = systemState.devices.power.status;
+            document.getElementById('batteryLevel').style.width = `${systemState.devices.power.battery}%`;
+            document.getElementById('batteryValue').textContent = `${systemState.devices.power.battery}%`;
+            
+            // Update battery color based on level
+            const batteryLevel = document.getElementById('batteryLevel');
+            batteryLevel.className = 'risk-level';
+            if (systemState.devices.power.battery > 50) {
+                batteryLevel.classList.add('risk-low');
+            } else if (systemState.devices.power.battery > 20) {
+                batteryLevel.classList.add('risk-medium');
+            } else {
+                batteryLevel.classList.add('risk-high');
+            }
+        }
+
+        function startECG() {
+            systemState.devices.ecg.running = true;
+            systemState.devices.ecg.status = 'RUNNING';
+            updateDeviceStatus();
+            
+            // Initialize heart animation
+            initializeHeartAnimation();
+            
+            // Start ECG line animation
+            systemState.ecgAnimationInterval = setInterval(updateECGAnimation, 1000);
+            
+            console.log('ECG monitor started');
+        }
+
+        function stopECG() {
+            systemState.devices.ecg.running = false;
+            systemState.devices.ecg.status = 'STOPPED';
+            updateDeviceStatus();
+            
+            // Stop ECG animation
+            if (systemState.ecgAnimationInterval) {
+                clearInterval(systemState.ecgAnimationInterval);
+            }
+            
+            // Clear ECG lines
+            ecgLines.forEach(line => line.remove());
+            ecgLines = [];
+            
+            console.log('ECG monitor stopped');
+        }
+
+        function updateECGGain(value) {
+            systemState.devices.ecg.gain = parseInt(value);
+            document.getElementById('ecgGainValue').textContent = `${value}x`;
+            console.log(`ECG gain set to ${value}x`);
+        }
+
+        function startInfusion() {
+            systemState.devices.infusion.running = true;
+            systemState.devices.infusion.status = 'RUNNING';
+            updateDeviceStatus();
+            console.log('Infusion pump started');
+        }
+
+        function stopInfusion() {
+            systemState.devices.infusion.running = false;
+            systemState.devices.infusion.status = 'STOPPED';
+            updateDeviceStatus();
+            console.log('Infusion pump stopped');
+        }
+
+        function updateInfusionRate(value) {
+            systemState.devices.infusion.rate = parseInt(value);
+            document.getElementById('infusionRateValue').textContent = `${value} ml/hr`;
+            console.log(`Infusion rate set to ${value} ml/hr`);
+        }
+
+        function startVentilator() {
+            systemState.devices.ventilator.running = true;
+            systemState.devices.ventilator.status = 'RUNNING';
+            updateDeviceStatus();
+            console.log('Ventilator started');
+        }
+
+        function stopVentilator() {
+            systemState.devices.ventilator.running = false;
+            systemState.devices.ventilator.status = 'STOPPED';
+            updateDeviceStatus();
+            console.log('Ventilator stopped');
+        }
+
+        function updateVentilatorRate(value) {
+            systemState.devices.ventilator.rate = parseInt(value);
+            document.getElementById('ventilatorRateValue').textContent = `${value} breaths/min`;
+            console.log(`Ventilator rate set to ${value} breaths/min`);
+        }
+
+        function simulateBatteryDrain() {
+            if (systemState.isRunning && systemState.devices.power.battery > 0) {
+                // Battery drains faster when more devices are running
+                let drainRate = 0.1;
+                if (systemState.devices.ecg.running) drainRate += 0.2;
+                if (systemState.devices.infusion.running) drainRate += 0.3;
+                if (systemState.devices.ventilator.running) drainRate += 0.4;
+                
+                systemState.devices.power.battery = Math.max(0, systemState.devices.power.battery - drainRate);
+                
+                if (systemState.devices.power.battery <= 20) {
+                    systemState.devices.power.status = 'LOW BATTERY';
+                } else if (systemState.devices.power.battery <= 0) {
+                    systemState.devices.power.status = 'POWER OFF';
+                    // Auto-stop all devices when battery is empty
+                    if (systemState.devices.ecg.running) stopECG();
+                    if (systemState.devices.infusion.running) stopInfusion();
+                    if (systemState.devices.ventilator.running) stopVentilator();
+                } else {
+                    systemState.devices.power.status = 'NORMAL';
+                }
+                
+                updateDeviceStatus();
+            }
+        }
+
+        // Data Processing Functions
+        class DataProcessor {
+            static processECG(ecgData) {
+                const heartRate = Math.floor(60 + Math.random() * 40); // 60-100 bpm
+                const signalQuality = Math.random() > 0.1 ? 'GOOD' : 'POOR';
+                
+                // Simulate QRS complex detection
+                const qrsDuration = 0.08 + (Math.random() * 0.04);
+                const qrsAmplitude = 1.0 + (Math.random() * 0.5);
+                
+                return {
+                    heartRate,
+                    signalQuality,
+                    qrsComplex: {
+                        duration: qrsDuration,
+                        amplitude: qrsAmplitude,
+                        morphology: 'NORMAL'
+                    },
+                    arrhythmia: this.detectArrhythmia(heartRate)
+                };
+            }
+
+            static detectArrhythmia(heartRate) {
+                const rand = Math.random();
+                if (rand < 0.05) {
+                    return { type: 'ATRIAL_FIBRILLATION', confidence: 0.85 };
+                } else if (rand < 0.1) {
+                    return { type: 'PVC', confidence: 0.75 };
+                } else if (heartRate > 120 || heartRate < 50) {
+                    return { type: 'BRADYCARDIA/TACHYCARDIA', confidence: 0.9 };
+                }
+                return null;
+            }
+
+            static generateVitalSigns() {
+                const systolic = Math.floor(100 + Math.random() * 40);
+                const diastolic = Math.floor(60 + Math.random() * 20);
+                
+                return {
+                    heartRate: Math.floor(60 + Math.random() * 40),
+                    bloodPressure: { systolic, diastolic },
+                    spo2: Math.floor(95 + Math.random() * 4),
+                    respiratoryRate: Math.floor(12 + Math.random() * 8),
+                    temperature: 36.5 + (Math.random() * 1.0)
+                };
+            }
+
+            static generateCriticalVitalSigns() {
+                return {
+                    heartRate: Math.floor(140 + Math.random() * 30), // 140-170 bpm
+                    bloodPressure: { 
+                        systolic: Math.floor(180 + Math.random() * 30), 
+                        diastolic: Math.floor(100 + Math.random() * 20) 
+                    },
+                    spo2: Math.floor(85 + Math.random() * 5), // 85-90%
+                    respiratoryRate: Math.floor(25 + Math.random() * 10), // 25-35
+                    temperature: 37.5 + (Math.random() * 1.5)
+                };
+            }
+        }
+
+        // Risk Assessment Engine
+        class RiskAssessor {
+            static assessRisks(vitalSigns, ecgData) {
+                let arrhythmiaRisk = 0.1;
+                let heartFailureRisk = 0.1;
+                let hemodynamicRisk = 0.1;
+
+                // Arrhythmia risk factors
+                if (ecgData.arrhythmia) {
+                    arrhythmiaRisk += 0.4;
+                }
+                if (vitalSigns.heartRate > 100 || vitalSigns.heartRate < 50) {
+                    arrhythmiaRisk += 0.3;
+                }
+
+                // Heart failure risk factors
+                if (vitalSigns.bloodPressure.systolic > 160) {
+                    heartFailureRisk += 0.3;
+                }
+                if (vitalSigns.spo2 < 92) {
+                    heartFailureRisk += 0.2;
+                }
+
+                // Hemodynamic risk
+                const meanBP = (vitalSigns.bloodPressure.systolic + 2 * vitalSigns.bloodPressure.diastolic) / 3;
+                if (meanBP < 65 || meanBP > 110) {
+                    hemodynamicRisk += 0.3;
+                }
+
+                return {
+                    arrhythmiaRisk: Math.min(arrhythmiaRisk, 0.95),
+                    heartFailureRisk: Math.min(heartFailureRisk, 0.95),
+                    hemodynamicRisk: Math.min(hemodynamicRisk, 0.95),
+                    compositeRisk: (arrhythmiaRisk + heartFailureRisk + hemodynamicRisk) / 3
+                };
+            }
+        }
+
+        // Clinical Decision Engine
+        class ClinicalDecisionEngine {
+            static generateInsights(vitalSigns, ecgData, risks) {
+                const findings = [];
+                const recommendations = [];
+                let alertLevel = 'NORMAL';
+
+                // Analyze vital signs
+                if (vitalSigns.heartRate > 120) {
+                    findings.push('Tachycardia detected');
+                    alertLevel = this.elevateAlert(alertLevel, 'WARNING');
+                }
+                if (vitalSigns.heartRate < 50) {
+                    findings.push('Bradycardia detected');
+                    alertLevel = this.elevateAlert(alertLevel, 'WARNING');
+                }
+                if (vitalSigns.bloodPressure.systolic > 160) {
+                    findings.push('Hypertension detected');
+                    alertLevel = this.elevateAlert(alertLevel, 'WATCH');
+                }
+                if (vitalSigns.spo2 < 92) {
+                    findings.push('Low oxygen saturation');
+                    alertLevel = this.elevateAlert(alertLevel, 'WARNING');
+                }
+
+                // Analyze ECG
+                if (ecgData.arrhythmia) {
+                    findings.push(`Arrhythmia: ${ecgData.arrhythmia.type}`);
+                    alertLevel = this.elevateAlert(alertLevel, 'CRITICAL');
+                }
+
+                // Analyze risks
+                if (risks.arrhythmiaRisk > 0.7) {
+                    findings.push('High arrhythmia risk');
+                    alertLevel = this.elevateAlert(alertLevel, 'WARNING');
+                }
+                if (risks.heartFailureRisk > 0.6) {
+                    findings.push('Elevated heart failure risk');
+                    alertLevel = this.elevateAlert(alertLevel, 'WATCH');
+                }
+
+                // Generate recommendations based on findings
+                if (vitalSigns.heartRate > 120) {
+                    recommendations.push('Consider beta-blocker therapy for rate control');
+                }
+                if (vitalSigns.bloodPressure.systolic > 160) {
+                    recommendations.push('Optimize antihypertensive medication regimen');
+                }
+                if (ecgData.arrhythmia) {
+                    recommendations.push('Schedule cardiology consultation for arrhythmia management');
+                }
+                if (risks.compositeRisk > 0.6) {
+                    recommendations.push('Increase monitoring frequency and consider hospitalization');
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push('Continue current management with routine follow-up');
+                }
+
+                return {
+                    alertLevel,
+                    findings,
+                    recommendations,
+                    confidence: 0.85 + (Math.random() * 0.1),
+                    risks
+                };
+            }
+
+            static elevateAlert(current, newLevel) {
+                const levels = { 'NORMAL': 0, 'WATCH': 1, 'WARNING': 2, 'CRITICAL': 3 };
+                return levels[newLevel] > levels[current] ? newLevel : current;
+            }
+        }
+
+        // Update Display Functions
+        function updateVitalSignsDisplay(vitalSigns) {
+            document.getElementById('heartRate').textContent = vitalSigns.heartRate;
+            document.getElementById('bloodPressure').textContent = 
+                `${vitalSigns.bloodPressure.systolic}/${vitalSigns.bloodPressure.diastolic}`;
+            document.getElementById('oxygenSat').textContent = `${vitalSigns.spo2}%`;
+            document.getElementById('respiratoryRate').textContent = vitalSigns.respiratoryRate;
+
+            const vitalStream = document.getElementById('vitalSigns');
+            const timestamp = new Date().toLocaleTimeString();
+            vitalStream.innerHTML = `
+                <div style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px;">
+                    Last updated: ${timestamp}
+                </div>
+                <div><strong>Temperature:</strong> ${vitalSigns.temperature.toFixed(1)}°C</div>
+                <div><strong>Signal Quality:</strong> Good</div>
+                <div><strong>Patient Status:</strong> Stable</div>
+            `;
+        }
+
+        function updateClinicalDisplay(insights) {
+            const insightsDiv = document.getElementById('clinicalInsights');
+            const alertClass = `alert-${insights.alertLevel.toLowerCase()}`;
+            
+            insightsDiv.innerHTML = `
+                <div class="${alertClass}">
+                    <strong>Alert Level:</strong> ${insights.alertLevel}<br>
+                    <strong>Confidence:</strong> ${(insights.confidence * 100).toFixed(1)}%<br>
+                    <strong>Key Findings:</strong><br>
+                    ${insights.findings.map(f => `• ${f}`).join('<br>')}
+                </div>
+            `;
+        }
+
+        function updateRiskDisplay(risks) {
+            const riskDiv = document.getElementById('riskAssessment');
+            
+            riskDiv.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <strong>Arrhythmia Risk:</strong> ${(risks.arrhythmiaRisk * 100).toFixed(1)}%
+                    <div class="risk-meter">
+                        <div class="risk-level ${risks.arrhythmiaRisk > 0.7 ? 'risk-high' : risks.arrhythmiaRisk > 0.4 ? 'risk-medium' : 'risk-low'}" 
+                             style="width: ${risks.arrhythmiaRisk * 100}%"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Heart Failure Risk:</strong> ${(risks.heartFailureRisk * 100).toFixed(1)}%
+                    <div class="risk-meter">
+                        <div class="risk-level ${risks.heartFailureRisk > 0.7 ? 'risk-high' : risks.heartFailureRisk > 0.4 ? 'risk-medium' : 'risk-low'}" 
+                             style="width: ${risks.heartFailureRisk * 100}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <strong>Composite Risk Score:</strong> ${(risks.compositeRisk * 100).toFixed(1)}%
+                    <div class="risk-meter">
+                        <div class="risk-level ${risks.compositeRisk > 0.7 ? 'risk-high' : risks.compositeRisk > 0.4 ? 'risk-medium' : 'risk-low'}" 
+                             style="width: ${risks.compositeRisk * 100}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateTreatmentDisplay(recommendations) {
+            const treatmentDiv = document.getElementById('treatmentRecommendations');
+            
+            treatmentDiv.innerHTML = recommendations.map(rec => 
+                `<div class="recommendation-item">${rec}</div>`
+            ).join('');
+        }
+
+        function updateCharts(ecgData, risks) {
+            const timestamp = new Date().toLocaleTimeString();
+            
+            // Update ECG Chart
+            if (systemState.chart.data.labels.length > 20) {
+                systemState.chart.data.labels.shift();
+                systemState.chart.data.datasets[0].data.shift();
+            }
+            
+            systemState.chart.data.labels.push(timestamp);
+            systemState.chart.data.datasets[0].data.push(
+                Math.sin(systemState.chart.data.labels.length * 0.5) + (Math.random() * 0.2 - 0.1)
+            );
+            systemState.chart.update('none');
+
+            // Update Risk Chart
+            if (systemState.riskChart.data.labels.length > 10) {
+                systemState.riskChart.data.labels.shift();
+                systemState.riskChart.data.datasets[0].data.shift();
+                systemState.riskChart.data.datasets[1].data.shift();
+            }
+            
+            systemState.riskChart.data.labels.push(timestamp);
+            systemState.riskChart.data.datasets[0].data.push(risks.arrhythmiaRisk);
+            systemState.riskChart.data.datasets[1].data.push(risks.heartFailureRisk);
+            systemState.riskChart.update('none');
+        }
+
+        // Main System Functions
+        function startSystem() {
+            if (systemState.isRunning) {
+                alert('System is already running!');
+                return;
+            }
+
+            initializeCharts();
+            systemState.isRunning = true;
+            updateSystemStatus('RUNNING', 'System operational and monitoring');
+            
+            // Initialize electro-mechanical devices
+            systemState.devices.ecg.status = 'READY';
+            systemState.devices.infusion.status = 'READY';
+            systemState.devices.ventilator.status = 'READY';
+            systemState.devices.power.status = 'NORMAL';
+            updateDeviceStatus();
+            
+            // Start continuous simulation
+            systemState.simulationInterval = setInterval(() => {
+                if (systemState.isRunning) {
+                    simulatePatientData();
+                    simulateBatteryDrain();
+                }
+            }, 5000); // Simulate data every 5 seconds
+
+            alert('System started successfully! Patient monitoring active.');
+        }
+
+        function simulatePatientData() {
+            if (!systemState.isRunning) {
+                alert('Please start the system first!');
+                return;
+            }
+
+            const vitalSigns = DataProcessor.generateVitalSigns();
+            const ecgData = DataProcessor.processECG();
+            const risks = RiskAssessor.assessRisks(vitalSigns, ecgData);
+            const insights = ClinicalDecisionEngine.generateInsights(vitalSigns, ecgData, risks);
+
+            updateVitalSignsDisplay(vitalSigns);
+            updateClinicalDisplay(insights);
+            updateRiskDisplay(risks);
+            updateTreatmentDisplay(insights.recommendations);
+            updateCharts(ecgData, risks);
+
+            // Store in history
+            systemState.dataHistory.push({
+                timestamp: new Date(),
+                vitalSigns,
+                ecgData,
+                risks,
+                insights
+            });
+        }
+
+        function simulateCriticalCase() {
+            if (!systemState.isRunning) {
+                alert('Please start the system first!');
+                return;
+            }
+
+            const vitalSigns = DataProcessor.generateCriticalVitalSigns();
+            const ecgData = DataProcessor.processECG();
+            const risks = RiskAssessor.assessRisks(vitalSigns, ecgData);
+            const insights = ClinicalDecisionEngine.generateInsights(vitalSigns, ecgData, risks);
+
+            updateVitalSignsDisplay(vitalSigns);
+            updateClinicalDisplay(insights);
+            updateRiskDisplay(risks);
+            updateTreatmentDisplay(insights.recommendations);
+            updateCharts(ecgData, risks);
+
+            // Alert for critical case
+            if (insights.alertLevel === 'CRITICAL') {
+                alert('🚨 CRITICAL PATIENT CASE DETECTED! Immediate intervention required!');
+            }
+        }
+
+        function resetSystem() {
+            systemState.isRunning = false;
+            systemState.dataHistory = [];
+            
+            if (systemState.simulationInterval) {
+                clearInterval(systemState.simulationInterval);
+                systemState.simulationInterval = null;
+            }
+
+            // Reset electro-mechanical devices
+            systemState.devices.ecg = {
+                status: 'INITIALIZING',
+                running: false,
+                gain: 5
+            };
+            systemState.devices.infusion = {
+                status: 'INITIALIZING',
+                running: false,
+                rate: 0
+            };
+            systemState.devices.ventilator = {
+                status: 'INITIALIZING',
+                running: false,
+                rate: 12
+            };
+            systemState.devices.power = {
+                status: 'INITIALIZING',
+                battery: 100
+            };
+            updateDeviceStatus();
+
+            // Reset displays
+            document.getElementById('heartRate').textContent = '--';
+            document.getElementById('bloodPressure').textContent = '--/--';
+            document.getElementById('oxygenSat').textContent = '--%';
+            document.getElementById('respiratoryRate').textContent = '--';
+            
+            document.getElementById('vitalSigns').innerHTML = '';
+            document.getElementById('clinicalInsights').innerHTML = '';
+            document.getElementById('riskAssessment').innerHTML = '';
+            document.getElementById('treatmentRecommendations').innerHTML = '';
+
+            updateSystemStatus('STOPPED', 'System reset complete');
+            initializeCharts();
+            
+            alert('System has been reset. Ready for new session.');
+        }
+
+        // Initialize system when page loads
+        window.addEventListener('load', function() {
+            initializeCharts();
+            updateSystemStatus('INITIALIZING', 'Ready to start monitoring');
+            updateDeviceStatus();
+            console.log('Adaptive Cardiology Care System loaded successfully!');
+        });
+
+        let heartScene, heartCamera, heartRenderer, heartModel;
+        let ecgLines = [];
+
+        function initializeHeartAnimation() {
+            // Set up Three.js scene
+            heartScene = new THREE.Scene();
+            heartCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            heartRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('heartCanvas'), alpha: true });
+            heartRenderer.setSize(400, 300);
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xff0000, 0.5);
+            heartScene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xff0000, 0.8);
+            directionalLight.position.set(0, 1, 1);
+            heartScene.add(directionalLight);
+            
+            // Create heart shape using spheres
+            const heartGeometry = new THREE.Group();
+            
+            // Left ventricle
+            const leftVentricle = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 32, 32),
+                new THREE.MeshPhongMaterial({ color: 0xff0000 })
+            );
+            leftVentricle.position.set(-0.5, 0, 0);
+            heartGeometry.add(leftVentricle);
+            
+            // Right ventricle
+            const rightVentricle = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 32, 32),
+                new THREE.MeshPhongMaterial({ color: 0xff0000 })
+            );
+            rightVentricle.position.set(0.5, 0, 0);
+            heartGeometry.add(rightVentricle);
+            
+            // Apex
+            const apex = new THREE.Mesh(
+                new THREE.ConeGeometry(1.2, 2, 32),
+                new THREE.MeshPhongMaterial({ color: 0xff0000 })
+            );
+            apex.position.set(0, -1.5, 0);
+            apex.rotation.x = Math.PI;
+            heartGeometry.add(apex);
+            
+            heartModel = heartGeometry;
+            heartScene.add(heartModel);
+            
+            heartCamera.position.z = 8;
+            
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (heartModel) {
+                heartModel.rotation.y += 0.01;
+                
+                // Simulate heartbeat
+                const scale = 1 + Math.sin(Date.now() * 0.008) * 0.1;
+                heartModel.scale.set(scale, scale, scale);
+            }
+            
+            heartRenderer.render(heartScene, heartCamera);
+        }
+
+        function createECGLine() {
+            const line = document.createElement('div');
+            line.className = 'ecg-line';
+            document.getElementById('ecgContainer').appendChild(line);
+            return line;
+        }
+
+        function updateECGAnimation() {
+            const container = document.getElementById('ecgContainer');
+            const width = container.offsetWidth;
+            
+            // Create new ECG line
+            const line = createECGLine();
+            ecgLines.push(line);
+            
+            // Animate ECG line
+            let position = 0;
+            const interval = setInterval(() => {
+                position += 2;
+                line.style.left = position + 'px';
+                line.style.width = (Math.sin(position * 0.1) * 20 + 30) + 'px';
+                
+                if (position > width) {
+                    clearInterval(interval);
+                    line.remove();
+                    ecgLines = ecgLines.filter(l => l !== line);
+                }
+            }, 16);
+        }
+    </script>
+</body>
+</html>
